@@ -1,4 +1,4 @@
-poi.process <- function(lambda,n){
+poi_process <- function(lambda,n){
   
   # initialize vector of total wait time for the arrival of each event:
   s<-numeric(n+1)
@@ -17,14 +17,16 @@ poi.process <- function(lambda,n){
   
 }
 
-n<-20
+n<-2
 
-lambda <-3
+lambda <-55
 
 # simulate list of wait time:
 s_list <-poi.process(lambda,n)
 
 # plot function:
+
+pois
 plot(stepfun(0:(n-1), s_list), 
      do.points = TRUE,
      pch = 16,
