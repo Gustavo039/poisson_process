@@ -1,0 +1,129 @@
+---
+title: "Processo de Poisson Homogeneo, um estudo sobre simulação e inferencia"
+author: "Gustavo Almeida Silva"
+date: "23/07/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Parte 1: Simulação de um Processo de Poisson
+O processo de Poisson é um processo de contagem, ou seja, quantificar quantas observações foram registradas em algum determinado espaço de tempo. 
+Esse processo possui propriedades importantíssimas, onde a função desenvolvida neste trabalho para simular um Processo de Poisson, se utiliza delas:
+
+* Propriedade de falta de memória
+   + Diz respeito à estrutura condicional do processo, onde a probabilidade de ocorrer alguma observação entre os tempos $T_1$ e $T_2$ é independente do número de observações registradas entre $T_0$ e $T_1$
+   
+* Propriedade do Tempo de Chegada: distribuição e independência
+  + O intervalo de tempo entre a chegada de 2 observações seguem uma distribuição Exponencial, onde por conta do processo possuir a propriedade de falta de memória, esses $T_i$ são IID. Assim, a soma de tempos de chegada segue uma Gama
+ 
+
+
+ Com essas propriedades em mãos, pode-se desenvolver uma função que simula um Processo de Poisson, onde dado um lambda (taxa de chegada por tempo), estima-se o tempo de chegada entre as observações durante n passos(comprimento da simulação)
+
+```{r}
+poi_process <- function(lambda,n){
+  
+  # initialize vector of total wait time for the arrival of each event:
+  s<-numeric(n+1)
+  # set S_0 = 0
+  s[1] <-0
+  # generate vector of iid Exp random variables:
+  x <-replicate(n,rexp(1,lambda))
+  # assign wait time to vector s in for loop:
+  for (k in 1:n){
+    
+    s[k+1] <-sum(x[1:k])
+    
+  }
+  # return vector of wait time
+  return(s)
+  
+}
+
+```
+
+## Função de plot
+```{r}
+poi_plot=function(data,lambda,n){
+plot(stepfun(data, 1:(n+2)), 
+     do.points = TRUE,
+     pch = 16,
+     col.points = "red",
+     verticals = FALSE,
+     main = paste('Simulação de um Processo de Poisson com lambda =',lambda),
+     xlab = 'Tempo de Chegada',
+     ylab = 'Numero de observações')
+}
+```
+
+## Teste da função
+```{r}
+n=20
+lambda=sample(c(1:10),1)
+paste('Seja n:',n,'e lambda:',lambda)
+data=poi_process(lambda,n)
+poi_plot(data,lambda,n)
+```
+
+
+
+```{r}
+lambda=sample(c(20:50),1)
+paste('Seja n:',n,'e lambda:',lambda)
+data=poi_process(lambda,n)
+poi_plot(data,lambda,n)
+```
+
+```{r}
+lambda=sample(c(80:100),1)
+paste('Seja n:',n,'e lambda:',lambda)
+data=poi_process(lambda,n)
+poi_plot(data,lambda,n)
+```
+
+
+## Parte 2: Inferência em um Processo de Poisson
+Assim como é em boa parte das bases de dados, em um Processo de Poisson também é possível estimar parâmetros de uma população com base em estimadores calculados a partir de amostras.
+Para isso, assumimos sempre um tempo de observação consideravelmente grande.
+
+* Propriedade 1:
+  + Pela Lei dos Grandes Números, temos que: $\lim_{t \to \infty} \frac{N(t)}{t}=\lambda$
+ 
+* Propriedade 2:
+  + Como consequência direta da propriedade 1, $\hat{\lambda}= \frac{n(0,T]}{T}$
+
+Com essas propriedades em mãos, pode-se desenvolver uma função que estima pontualmente lambda a partir de amostras de uma simulação de Processos de Poisson
+```{r}
+poi_estim=function(data){
+  #Initializing the data vector
+  data_ret=numeric()
+  #Calculing lambda by propriety one
+  data_ret=1:length(data)/data
+  data_ret=data_ret[-1]
+  #returining the mean
+  return(mean(data_ret))
+}
+```
+
+
+
+Verificando a sua propriedade assintótica com o tempo, ou seja, qual o tamanho de T é consideravelmente grande para uma boa estimação, utilizando método monte carlo de amostras aleatórias
+```{r}
+#Random selection of time observation
+mc_time=runif(2000,min = 1,max = 10000)
+#Fixing lambda
+lambda_fixed=sample(1:10,1)
+mc_data=numeric()
+#Calculating the asymptotic property of lambda
+for(i in seq_along(mc_time)){
+  mc_data=c(mc_data,poi_estim(poi_process(lambda=lambda_fixed,n=mc_time[i])))
+}
+
+#$Ploting lambda estimator
+plot(mc_time,mc_data,ylim=c(lambda_fixed-4,lambda_fixed+4),main = paste('Convergencia para lambda:',lambda_fixed),xlab = 'tempo de observação decorrido',ylab='Lambda estimado')
+abline(h=lambda_fixed,col='red')
+```
+
